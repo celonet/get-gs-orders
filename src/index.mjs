@@ -1,12 +1,8 @@
 import Yargs from "yargs/yargs";
-import dotenv from "dotenv";
 import fs from "fs";
-import Papa from "papaparse";
-import axios from "axios";
 import pLimit from "p-limit";
-import { parseToProduct } from "./product-parser.mjs";
-
-dotenv.config();
+import { mapProducts } from "./csv-parser.mjs";
+import { sendProductToWebApi } from "./webapi.repository.mjs";
 
 const webApiLimit = pLimit(2);
 
@@ -22,42 +18,19 @@ function getParameters() {
   }
 }
 
-function getConfig() {
-  return {
-    webapi_url: process.env.WEBAPI_URL,
-    scooby_token: process.env.SCOOBY_TOKEN
-  }
-}
+async function processProducts(products) {
+  const logs = [];
 
-function mapProducts(csvData) {
-
-  const csvObj = Papa.parse(csvData, {
-    header: true,
-    delimiter: ",",
-    escapeChar: '"',
-    newline: "\n",
-    quoteChar: '"',
-    skipEmptyLines: true
-  });
-
-  return csvObj.data.map((line) => parseToProduct(line));
-}
-
-async function sendToWebApi(product) {
-  const config = getConfig();
-
-  const url = `${config.webapi_url}/marketplace/v1.0/products`;
-  const payload = JSON.stringify(product)
-
-  const request = await axios.post(url, payload, {
-    headers: {
-      'accept': 'application/json',
-      'Authorization': `Bearer ${config.scooby_token}`,
-      'Content-Type': 'application/json',
+  for (const product of products) {
+    try {
+      const response = await webApiLimit(() => sendProductToWebApi(product));
+      logs.push(`Successfully sent product: ${product.product}: response: ${response}`);
+    } catch (error) {
+      logs.push(`Error to send ${product.product}: ${error.message} - ${error.response?.data?.message}`);
     }
-  });
+  }
 
-  return request.data;
+  return logs;
 }
 
 async function processProductFile() {
@@ -70,14 +43,11 @@ async function processProductFile() {
 
     console.log(`Processing ${products.length} products`);
 
-    products
-      .map((product) =>
-        webApiLimit(
-          () => sendToWebApi(product)
-            .then((response) => console.log(`Successfully sent product: ${product.product}: response: ${response}`))
-            .catch((error) => console.error(`Error to send ${product.product}: ${error.message} - ${error.response.data?.message}`))
-        )
-      );
+    const processLogs = await processProducts(products);
+
+    fs.writeFileSync('logs.txt', processLogs.join('\n'));
+
+    console.log(processLogs);
   }
   catch (error) {
     console.error(`Error to process orders: ${error.message} - ${error}`);
@@ -85,12 +55,3 @@ async function processProductFile() {
 }
 
 await processProductFile();
-
-
-// //   .then((response) => {
-//   console.log(response);
-//   console.log(`Successfully sent product`);
-// }).catch((error) => {
-//   console.log(error.message)
-//   console.error(`Error to send ${orderData.product}: ${error.message} - ${error.response.data?.message}`);
-// })
