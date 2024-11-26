@@ -1,14 +1,30 @@
 import { pInt, pBool, pFloat } from "./parseUtils.mjs";
 
-const getLineArrData = (line, key) => line[key] ? line[key].split(",") : [];
+const getData = (line, key) => line[key] ? String(line[key]).trim() : null;
+const getIntData = (line, key) => pInt(getData(line, key) ?? 0);
+const getBoolData = (line, key) => pBool(getData(line, key) ?? false);
+const getLineArrData = (line, key) => line[key] ? String(line[key]).trim().split(",") : [];
 
-const parseAttributes = (line) => {
-    const names = line["Request.skus.attributes.name"].split(",");
-    const values = line["Request.skus.attributes.value"].split(",");
-    return names.map((name, index) => {
+const getGroups = (data) => {
+    let groups = [];
+
+    const array = data.split(', ');
+
+    for (let i = 0; i < array.length; i += 2) {
+        groups.push([array[i], array[i + 1]]);
+    }
+
+    return groups;
+}
+
+const parseAttributes = (line, index) => {
+    const names = getGroups(line["Request.skus.attributes.name"]);
+    const values = getGroups(line["Request.skus.attributes.value"]);
+
+    return names[index].map((name, i) => {
         return {
             name: name,
-            value: values[index]
+            value: values[index][i]
         }
     });
 }
@@ -80,38 +96,38 @@ function parseSkus(line) {
                 grossWeight: pInt(packageDimensionDataGrossWeight ?? 0)
             },
             images: [], //parseImages()
-            attributes: [], //parseAttributes(line)
+            attributes: parseAttributes(line, index),
         }
     });
 }
 
 function parseToProduct(line) {
     return {
-        product: line["Request.product"],
-        tenant: line["Request.tenant"],
-        active: pBool(line["Request.active"] ?? false),
-        createDate: line["Request.createDate"],
-        lastUpdate: line["Request.lastUpdate"],
-        customizationType: line["Request.customizationType"],
-        supply: pBool(["Request.supply"] ?? false),
+        product: getData(line, "Request.product"),
+        tenant: getData(line, "Request.tenant"),
+        active: getBoolData(line, "Request.active"),
+        createDate: getData(line, "Request.createDate"),
+        lastUpdate: getData(line, "Request.lastUpdate"),
+        customizationType: 0,
+        supply: getBoolData(line, "Request.supply"),
         productData: {
-            productName: line["Request.productData.productName"],
-            description: line["Request.productData.description"],
-            descriptionHTML: line["Request.productData.descriptionHTML"],
-            brand: line["Request.productData.brand"],
-            warranty: line["Request.productData.warranty"]
+            productName: getData(line, "Request.productData.productName"),
+            description: getData(line, "Request.productData.description"),
+            descriptionHTML: getData(line, "Request.productData.descriptionHTML"),
+            brand: getData(line, "Request.productData.brand"),
+            warranty: getData(line, "Request.productData.warranty"),
         },
         productDimensionData: {
-            width: pInt(line["Request.productDimensionData.width"] ?? 0),
-            height: pInt(line["Request.productDimensionData.height"] ?? 0),
-            depth: pInt(line["Request.productDimensionData.depth"] ?? 0),
-            grossWeight: pInt(line["Request.productDimensionData.grossWeight"] ?? 0)
+            width: getIntData(line, "Request.productDimensionData.width"),
+            height: getIntData(line, "Request.productDimensionData.height"),
+            depth: getIntData(line, "Request.productDimensionData.depth"),
+            grossWeight: getIntData(line, "Request.productDimensionData.grossWeight")
         },
         packageDimensionData: {
-            width: pInt(line["Request.packageDimensionData.width"] ?? 0),
-            height: pInt(line["Request.packageDimensionData.height"] ?? 0),
-            depth: pInt(line["Request.packageDimensionData.depth"] ?? 0),
-            grossWeight: pInt(line["Request.packageDimensionData.grossWeight"] ?? 0)
+            width: getIntData(line, "Request.packageDimensionData.width"),
+            height: getIntData(line, "Request.packageDimensionData.height"),
+            depth: getIntData(line, "Request.packageDimensionData.depth"),
+            grossWeight: getIntData(line, "Request.packageDimensionData.grossWeight"),
         },
         categoryData: {
             id: null,
