@@ -131,3 +131,5 @@ dist
 
 #csv
 *.csv
+
+.vscode

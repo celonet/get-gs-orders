@@ -43,20 +43,21 @@ function mapProducts(csvData) {
   return csvObj.data.map((line) => parseToProduct(line));
 }
 
-async function sendToWebApi(orderData) {
+async function sendToWebApi(product) {
   const config = getConfig();
 
-  return axios.post(`${config.webapi_url}/marketplace/v1.0/products`, JSON.stringify(orderData), {
+  const url = `${config.webapi_url}/marketplace/v1.0/products`;
+  const payload = JSON.stringify(product)
+
+  const request = await axios.post(url, payload, {
     headers: {
       'accept': 'application/json',
       'Authorization': `Bearer ${config.scooby_token}`,
       'Content-Type': 'application/json',
     }
-  }).then((response) => response.data)
-    .catch((error) => {
-      console.log(error.message)
-      console.error(`Error to send ${orderData.product}: ${error.message} - ${error.response.data?.message}`);
-    });
+  });
+
+  return request.data;
 }
 
 async function processProductFile() {
@@ -69,10 +70,14 @@ async function processProductFile() {
 
     console.log(`Processing ${products.length} products`);
 
-    console.log(JSON.stringify(products[0], null, 2));
-    //const requests = orders.map((order) => webApiLimit(() => sendToWebApi(order)));
-
-    // await Promise.all(requests)
+    products
+      .map((product) =>
+        webApiLimit(
+          () => sendToWebApi(product)
+            .then((response) => console.log(`Successfully sent product: ${product.product}: response: ${response}`))
+            .catch((error) => console.error(`Error to send ${product.product}: ${error.message} - ${error.response.data?.message}`))
+        )
+      );
   }
   catch (error) {
     console.error(`Error to process orders: ${error.message} - ${error}`);
@@ -81,3 +86,11 @@ async function processProductFile() {
 
 await processProductFile();
 
+
+// //   .then((response) => {
+//   console.log(response);
+//   console.log(`Successfully sent product`);
+// }).catch((error) => {
+//   console.log(error.message)
+//   console.error(`Error to send ${orderData.product}: ${error.message} - ${error.response.data?.message}`);
+// })

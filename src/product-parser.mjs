@@ -1,11 +1,7 @@
-import { pInt, pBool, pFloat } from "./parseUtils.mjs";
+import { pInt, pBool, pFloat } from "./utils/parse-type.mjs";
+import { getData, getIntData, getBoolData, getLineArrData } from "./utils/read-line.mjs";
 
-const getData = (line, key) => line[key] ? String(line[key]).trim() : null;
-const getIntData = (line, key) => pInt(getData(line, key) ?? 0);
-const getBoolData = (line, key) => pBool(getData(line, key) ?? false);
-const getLineArrData = (line, key) => line[key] ? String(line[key]).trim().split(",") : [];
-
-const getGroups = (data) => {
+const getAttributeGroups = (data) => {
     let groups = [];
 
     const array = data.split(', ');
@@ -17,9 +13,30 @@ const getGroups = (data) => {
     return groups;
 }
 
+const getImagesNumbers = (data) => {
+    let groups = [];
+
+    const arr = data.split(', ').map((order) => parseInt(order, 10));
+
+    let currentGroup = [arr[0]];
+
+    for (let i = 1; i < arr.length; i++) {
+        if (arr[i] === arr[i - 1] || arr[i] === arr[i - 1] + 1) {
+            currentGroup.push(arr[i]);
+        } else {
+            groups.push(currentGroup);
+            currentGroup = [arr[i]];
+        }
+    }
+
+    groups.push(currentGroup);
+
+    return groups;
+}
+
 const parseAttributes = (line, index) => {
-    const names = getGroups(line["Request.skus.attributes.name"]);
-    const values = getGroups(line["Request.skus.attributes.value"]);
+    const names = getAttributeGroups(line["Request.skus.attributes.name"]);
+    const values = getAttributeGroups(line["Request.skus.attributes.value"]);
 
     return names[index].map((name, i) => {
         return {
@@ -29,43 +46,53 @@ const parseAttributes = (line, index) => {
     });
 }
 
-const parseImages = () => {
-    // const links = line["Request.skus.images.link"].split(",");
-    // const mains = line["Request.skus.images.main"].split(",");
-    // const numbers = line["Request.skus.images.number"].split(",");
+const composeImageGroups = (line) => {
+    const imageGroups = [];
 
-    return links[index ?? 0].map((link, i) => {
-        return {
-            link: link,
-            main: pBool(mains[i]),
-            number: pInt(numbers[i])
-        }
+    const imageOrders = getImagesNumbers(line["Request.skus.images.number"]);
+    const links = line["Request.skus.images.link"].split(', ');
+    const mains = line["Request.skus.images.main"].split(', ');
+
+    imageOrders.map(groupOrder => {
+        const group = [];
+        groupOrder.map(e => {
+            group.push({
+                link: links.shift(),
+                main: pBool(mains.shift()),
+                number: pInt(e)
+            });
+        });
+        imageGroups.push(group);
     });
-};
 
-function parseSkus(line) {
-    const actives = getLineArrData(line, "Request.skus.active");
+    return imageGroups;
+}
 
-    const skuDataId = getLineArrData(line, "Request.skus.skuData.id");
-    const skuDataIntegratorId = getLineArrData(line, "Request.skus.skuData.integratorId");
-    const skuDataTenant = getLineArrData(line, "Request.skus.skuData.tenant");
-    const skuDataSku = getLineArrData(line, "Request.skus.skuData.sku");
-    const skuDataGtin = getLineArrData(line, "Request.skus.skuData.gtin");
-    const skuDataCrossdockingDays = getLineArrData(line, "Request.skus.skuData.crossdockingDays");
-    const skuDataSupplierCode = getLineArrData(line, "Request.skus.skuData.supplierCode");
-    const skuDataErpCode = getLineArrData(line, "Request.skus.skuData.erpCode");
-    const skuDataEstablishmentCode = getLineArrData(line, "Request.skus.skuData.establishmentCode");
+const parseSkus = (csvLine) => {
+    const actives = getLineArrData(csvLine, "Request.skus.active");
 
-    const priceDataFromPrice = getLineArrData(line, "Request.skus.priceData.fromPrice");
-    const priceDataPrice = getLineArrData(line, "Request.skus.priceData.price");
+    const skuDataId = getLineArrData(csvLine, "Request.skus.skuData.id");
+    const skuDataIntegratorId = getLineArrData(csvLine, "Request.skus.skuData.integratorId");
+    const skuDataTenant = getLineArrData(csvLine, "Request.skus.skuData.tenant");
+    const skuDataSku = getLineArrData(csvLine, "Request.skus.skuData.sku");
+    const skuDataGtin = getLineArrData(csvLine, "Request.skus.skuData.gtin");
+    const skuDataCrossdockingDays = getLineArrData(csvLine, "Request.skus.skuData.crossdockingDays");
+    const skuDataSupplierCode = getLineArrData(csvLine, "Request.skus.skuData.supplierCode");
+    const skuDataErpCode = getLineArrData(csvLine, "Request.skus.skuData.erpCode");
+    const skuDataEstablishmentCode = getLineArrData(csvLine, "Request.skus.skuData.establishmentCode");
 
-    const stockDataStock = getLineArrData(line, "Request.skus.stockData.stock");
-    const stockDataMinStock = getLineArrData(line, "Request.skus.stockData.minStock");
+    const priceDataFromPrice = getLineArrData(csvLine, "Request.skus.priceData.fromPrice");
+    const priceDataPrice = getLineArrData(csvLine, "Request.skus.priceData.price");
 
-    const packageDimensionDataWidth = getLineArrData(line, "Request.skus.packageDimensionData.width");
-    const packageDimensionDataHeight = getLineArrData(line, "Request.skus.packageDimensionData.height");
-    const packageDimensionDataDepth = getLineArrData(line, "Request.skus.packageDimensionData.depth");
-    const packageDimensionDataGrossWeight = getLineArrData(line, "Request.skus.packageDimensionData.grossWeight");
+    const stockDataStock = getLineArrData(csvLine, "Request.skus.stockData.stock");
+    const stockDataMinStock = getLineArrData(csvLine, "Request.skus.stockData.minStock");
+
+    const packageDimensionDataWidth = getLineArrData(csvLine, "Request.skus.packageDimensionData.width");
+    const packageDimensionDataHeight = getLineArrData(csvLine, "Request.skus.packageDimensionData.height");
+    const packageDimensionDataDepth = getLineArrData(csvLine, "Request.skus.packageDimensionData.depth");
+    const packageDimensionDataGrossWeight = getLineArrData(csvLine, "Request.skus.packageDimensionData.grossWeight");
+
+    const imageGroups = composeImageGroups(csvLine);
 
     return actives.map((active, index) => {
         return {
@@ -95,8 +122,8 @@ function parseSkus(line) {
                 depth: pInt(packageDimensionDataDepth ?? 0),
                 grossWeight: pInt(packageDimensionDataGrossWeight ?? 0)
             },
-            images: [], //parseImages()
-            attributes: parseAttributes(line, index),
+            images: imageGroups[index],
+            attributes: parseAttributes(csvLine, index),
         }
     });
 }
