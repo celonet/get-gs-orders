@@ -1,5 +1,5 @@
 import { pInt, pBool, pFloat } from "./utils/parse-type.mjs";
-import { getData, getIntData, getBoolData, getLineArrData } from "./utils/read-line.mjs";
+import { getData, getFloatData, getBoolData, getLineArrData } from "./utils/read-line.mjs";
 
 const getAttributeGroups = (data) => {
     let groups = [];
@@ -117,10 +117,10 @@ const parseSkus = (csvLine) => {
                 minStock: pInt(stockDataMinStock[index] ?? 0)
             },
             packageDimensionData: {
-                width: pInt(packageDimensionDataWidth ?? 0),
-                height: pInt(packageDimensionDataHeight ?? 0),
-                depth: pInt(packageDimensionDataDepth ?? 0),
-                grossWeight: pInt(packageDimensionDataGrossWeight ?? 0)
+                width: pFloat(packageDimensionDataWidth ?? 0),
+                height: pFloat(packageDimensionDataHeight ?? 0),
+                depth: pFloat(packageDimensionDataDepth ?? 0),
+                grossWeight: pFloat(packageDimensionDataGrossWeight ?? 0)
             },
             images: imageGroups[index],
             attributes: parseAttributes(csvLine, index),
@@ -145,16 +145,16 @@ function parseToProduct(line) {
             warranty: getData(line, "Request.productData.warranty"),
         },
         productDimensionData: {
-            width: getIntData(line, "Request.productDimensionData.width"),
-            height: getIntData(line, "Request.productDimensionData.height"),
-            depth: getIntData(line, "Request.productDimensionData.depth"),
-            grossWeight: getIntData(line, "Request.productDimensionData.grossWeight")
+            width: getFloatData(line, "Request.productDimensionData.width"),
+            height: getFloatData(line, "Request.productDimensionData.height"),
+            depth: getFloatData(line, "Request.productDimensionData.depth"),
+            grossWeight: getFloatData(line, "Request.productDimensionData.grossWeight")
         },
         packageDimensionData: {
-            width: getIntData(line, "Request.packageDimensionData.width"),
-            height: getIntData(line, "Request.packageDimensionData.height"),
-            depth: getIntData(line, "Request.packageDimensionData.depth"),
-            grossWeight: getIntData(line, "Request.packageDimensionData.grossWeight"),
+            width: getFloatData(line, "Request.packageDimensionData.width"),
+            height: getFloatData(line, "Request.packageDimensionData.height"),
+            depth: getFloatData(line, "Request.packageDimensionData.depth"),
+            grossWeight: getFloatData(line, "Request.packageDimensionData.grossWeight"),
         },
         categoryData: {
             id: null,
