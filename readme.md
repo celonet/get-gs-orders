@@ -19,7 +19,7 @@ npm i ou npm install
 ## Executar script usando
 
 ```sh
-node index.mjs --csvpath "{csv_filepath.csv}"
+node src/index.mjs --csvpath "{csv_filepath.csv}"
 ```
 
 A saida será no terminal no formato
