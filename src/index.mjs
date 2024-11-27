@@ -23,8 +23,8 @@ async function processProducts(products) {
 
   for (const product of products) {
     try {
-      const response = await webApiLimit(() => sendProductToWebApi(product));
-      logs.push(`Successfully sent product: ${product.product}: response: ${response}`);
+      await webApiLimit(() => sendProductToWebApi(product));
+      logs.push(`Successfully sent product: ${product.product}`);
     } catch (error) {
       logs.push(`Error to send ${product.product}: ${error.message} - ${error.response?.data?.message}`);
     }
